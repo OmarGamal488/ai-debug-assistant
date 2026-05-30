@@ -1,0 +1,18 @@
+# railway.toml — Infrastructure as Code for Railway
+#
+# Build is handled by Nixpacks (Railway's default), which auto-detects Python
+# from pyproject.toml and uses uv if a uv.lock is present.
+#
+# Docs: https://docs.railway.com/reference/config-as-code
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+# Nixpacks creates the venv at /opt/venv (NOT .venv in the project dir),
+# so we use the absolute path. Locally, use ".venv/bin/python" instead.
+startCommand = "/opt/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/login"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

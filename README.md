@@ -8,6 +8,7 @@
 ![Tests](https://img.shields.io/badge/tests-11%20passing-22c55e?style=flat)
 ![SSR](https://img.shields.io/badge/rendering-server--side-1f6feb?style=flat)
 ![ITI](https://img.shields.io/badge/ITI-AI%20Intake%2046-FF6B35?style=flat)
+[![Live on Railway](https://img.shields.io/badge/live-Railway-0B0D0E?style=flat&logo=railway&logoColor=white)](https://web-production-92492.up.railway.app)
 
 A server-side-rendered FastAPI web app that turns a coding bug into a
 categorised, difficulty-rated, AI-recommended fix — and files it in
@@ -26,6 +27,14 @@ Intake 46** at the Information Technology Institute (ITI).
 - **AI integration** — fault-tolerant: every submission persists a row with `SUCCESS`, `FAILED`, or `PENDING` plus the AI's verdict or the captured error
 - **Frontend** — "Debugbook" theme: Jupyter-notebook metaphor in monospace, mint-emerald accent on a dot-grid canvas, GSAP-animated, Prism.js code highlighting, marked.js + DOMPurify markdown for AI recommendations
 - **Tests** — 11 pytest integration tests covering register / login / auth-redirect / submit / IDOR / logout, in-memory SQLite, ~4 seconds end-to-end
+
+---
+
+## Demo
+
+**Live app:** <https://web-production-92492.up.railway.app>
+
+https://github.com/user-attachments/assets/0ee48139-750d-4ff0-ac5d-d99f0a6ff059
 
 ---
 
