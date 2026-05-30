@@ -1,0 +1,42 @@
+# render.yaml — Infrastructure as Code for Render.com
+#
+# When you connect this repository to Render, Render reads this file and
+# auto-configures the web service. You only have to paste two secrets in the
+# dashboard (LIGHTNING_API_KEY and optionally a custom SECRET_KEY); everything
+# else comes from this file.
+#
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: ai-debug-assistant
+    runtime: python
+    plan: free
+    region: frankfurt   # closest free-tier region to Egypt
+    branch: main
+    healthCheckPath: /login
+
+    buildCommand: pip install uv && uv sync --frozen
+    startCommand: .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    envVars:
+      # Set this manually in the Render dashboard (never commit it).
+      - key: LIGHTNING_API_KEY
+        sync: false
+
+      - key: LIGHTNING_BASE_URL
+        value: https://lightning.ai/api/v1/
+
+      - key: LIGHTNING_MODEL
+        value: lightning-ai/deepseek-v4-pro
+
+      # Let Render generate a strong random value the first time it deploys.
+      - key: SECRET_KEY
+        generateValue: true
+
+      # Render serves over HTTPS; enable the `secure` flag on session cookies.
+      - key: COOKIE_SECURE
+        value: "true"
+
+      # Pin the Python runtime version.
+      - key: PYTHON_VERSION
+        value: "3.13.0"

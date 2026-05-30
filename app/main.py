@@ -4,6 +4,7 @@ SSR with Jinja2 templates. Session state lives in a signed HTTP-only cookie.
 All POST → redirect responses use status_code=303 (PRG pattern).
 """
 
+import os
 from contextlib import asynccontextmanager
 
 from app import ai_service  # imported as module so monkeypatching works in tests
@@ -25,6 +26,11 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 load_dotenv()
+
+# Set COOKIE_SECURE=true in environments served over HTTPS (e.g. Render).
+# Default is false so local http://127.0.0.1 development still works — a
+# `secure` cookie is dropped by browsers when the connection is not HTTPS.
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() in ("true", "1", "yes")
 
 
 # ---------------------------------------------------------------------------
@@ -148,7 +154,7 @@ def login(
         samesite="lax",
         max_age=COOKIE_MAX_AGE,
         path="/",
-        # secure=True  # Uncomment in production (HTTPS only)
+        secure=COOKIE_SECURE,
     )
     return resp
 
