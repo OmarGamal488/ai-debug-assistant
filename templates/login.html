@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Sign in · Debugbook{% endblock %}
+{% block body %}
+<header class="toolbar">
+  <div class="toolbar-in">
+    <div class="nb-title">
+      <span class="nb-ico" aria-hidden="true">&#9654;</span>
+      <span class="nb-name">auth<span class="ext">.ipynb</span></span>
+    </div>
+    <div class="toolbar-right">
+      <span class="kernel"><span class="kdot" aria-hidden="true"></span> Python 3 &middot; idle</span>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="auth-wrap">
+  <div class="auth-nb">
+
+    <div class="md" data-anim>
+      <p class="kick"># sign in</p>
+      <h1>Welcome back</h1>
+      <p>Authenticate to open your debug notebook and pick up where you left off.</p>
+    </div>
+
+    <section class="cell active" data-anim aria-labelledby="login-h">
+      <h2 id="login-h" class="visually-hidden" style="position:absolute;left:-9999px">Sign in form</h2>
+      <div class="row">
+        <div class="gutter"><span class="prompt-in">In [&nbsp;]:</span></div>
+        <div class="cbody">
+          <form method="post" action="/login">
+            <div class="field">
+              <label for="username">username</label>
+              <input type="text" id="username" name="username" autocomplete="username" required autofocus />
+            </div>
+            <div class="field">
+              <label for="password">password</label>
+              <input type="password" id="password" name="password" autocomplete="current-password" required />
+            </div>
+            <div class="cellbar">
+              <button type="submit" class="run-btn">
+                <span class="tri" aria-hidden="true">&#9654;</span><span class="btn-text">Run</span>
+              </button>
+              <span class="hint"><span class="kbd">shift</span> + <span class="kbd">enter</span></span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    {% if error %}
+    <section class="cell err" data-anim role="alert" aria-live="assertive">
+      <div class="row">
+        <div class="gutter out"><span class="prompt-out">Out[&nbsp;]:</span></div>
+        <div class="cbody">
+          <div class="stderr"><span class="etype">AuthError</span>: {{ error }}</div>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <p class="auth-foot" data-anim>
+      No notebook yet? <a href="/register">Create an account</a>
+    </p>
+
+  </div>
+</main>
+{% endblock %}

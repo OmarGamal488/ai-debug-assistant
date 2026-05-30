@@ -1,0 +1,21 @@
+# Secrets / environment
+.env
+
+# SQLite database
+*.db
+database.db
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual environment
+.venv/
+
+# Claude Code artifacts (local AI tooling, never published)
+.claude/
+CLAUDE.md
+claude.md
+PROJECT_GUIDE.pdf
+PROJECT_GUIDE.tex

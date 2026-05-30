@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Create account · Debugbook{% endblock %}
+{% block body %}
+<header class="toolbar">
+  <div class="toolbar-in">
+    <div class="nb-title">
+      <span class="nb-ico" aria-hidden="true">&#9654;</span>
+      <span class="nb-name">auth<span class="ext">.ipynb</span></span>
+    </div>
+    <div class="toolbar-right">
+      <span class="kernel"><span class="kdot" aria-hidden="true"></span> Python 3 &middot; idle</span>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="auth-wrap">
+  <div class="auth-nb">
+
+    <div class="md" data-anim>
+      <p class="kick"># register</p>
+      <h1>Create your notebook</h1>
+      <p>Set up an account to start filing debug cases and tracking their analysis.</p>
+    </div>
+
+    <section class="cell active" data-anim aria-labelledby="reg-h">
+      <h2 id="reg-h" style="position:absolute;left:-9999px">Registration form</h2>
+      <div class="row">
+        <div class="gutter"><span class="prompt-in">In [&nbsp;]:</span></div>
+        <div class="cbody">
+          <form method="post" action="/register">
+            <div class="field">
+              <label for="username">username</label>
+              <input type="text" id="username" name="username" autocomplete="username" required autofocus />
+            </div>
+            <div class="field">
+              <label for="email">email</label>
+              <input type="email" id="email" name="email" autocomplete="email" required />
+            </div>
+            <div class="field">
+              <label for="password">password</label>
+              <input type="password" id="password" name="password" autocomplete="new-password" required />
+            </div>
+            <div class="cellbar">
+              <button type="submit" class="run-btn">
+                <span class="tri" aria-hidden="true">&#9654;</span><span class="btn-text">Run</span>
+              </button>
+              <span class="hint"><span class="kbd">shift</span> + <span class="kbd">enter</span></span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    {% if error %}
+    <section class="cell err" data-anim role="alert" aria-live="assertive">
+      <div class="row">
+        <div class="gutter out"><span class="prompt-out">Out[&nbsp;]:</span></div>
+        <div class="cbody">
+          <div class="stderr"><span class="etype">RegisterError</span>: {{ error }}</div>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <p class="auth-foot" data-anim>
+      Already registered? <a href="/login">Sign in</a>
+    </p>
+
+  </div>
+</main>
+{% endblock %}

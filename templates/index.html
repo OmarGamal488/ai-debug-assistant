@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}debug-session.ipynb · Debugbook{% endblock %}
+{% block body %}
+{% set total   = sessions | length %}
+{% set succ    = sessions | selectattr('ai_status', 'equalto', 'SUCCESS') | list | length %}
+{% set pend    = sessions | selectattr('ai_status', 'equalto', 'PENDING') | list | length %}
+{% set failed_ = sessions | selectattr('ai_status', 'equalto', 'FAILED')  | list | length %}
+
+<header class="toolbar">
+  <div class="toolbar-in">
+    <div class="nb-title">
+      <span class="nb-ico" aria-hidden="true">&#9654;</span>
+      <span class="nb-name">debug-session<span class="ext">.ipynb</span></span>
+    </div>
+    <nav class="toolbar-right" aria-label="Account">
+      <span class="kernel"><span class="kdot" aria-hidden="true"></span> Python 3 &middot; ready</span>
+      <span class="user">
+        <span class="u-name">{{ user.username }}</span>
+        <span class="u-mail">{{ user.email }}</span>
+      </span>
+      <a class="logout" href="/logout">logout</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="nb">
+
+  <!-- Heading markdown cell -->
+  <div class="md" data-anim>
+    <p class="kick"># debug notebook</p>
+    <h1>Welcome back, {{ user.username }}</h1>
+    <p>Describe a bug in the input cell below and run it. Each analysis is filed as an executed cell, newest first.</p>
+  </div>
+
+  <!-- Stats output cell -->
+  <section class="cell" data-anim aria-label="Session statistics">
+    <div class="row">
+      <div class="gutter out"><span class="prompt-out">Out[&nbsp;]:</span></div>
+      <div class="cbody">
+        <div class="summary">
+          <span class="cls">DebugLog</span>(<span class="kw">total</span>=<b class="v-total" data-count="{{ total }}">{{ total }}</b>, <span class="kw">success</span>=<b class="v-succ" data-count="{{ succ }}">{{ succ }}</b>, <span class="kw">pending</span>=<b class="v-pend" data-count="{{ pend }}">{{ pend }}</b>, <span class="kw">failed</span>=<b class="v-fail" data-count="{{ failed_ }}">{{ failed_ }}</b>)
+        </div>
+        <div class="meter" role="img" aria-label="{{ succ }} success, {{ pend }} pending, {{ failed_ }} failed of {{ total }} total">
+          {% if total %}
+          <span class="s-succ" style="width: {{ (succ / total * 100) | round(2) }}%"></span>
+          <span class="s-pend" style="width: {{ (pend / total * 100) | round(2) }}%"></span>
+          <span class="s-fail" style="width: {{ (failed_ / total * 100) | round(2) }}%"></span>
+          {% endif %}
+          <span class="s-empty"></span>
+        </div>
+        <div class="legend">
+          <span class="l-succ"><i></i>success</span>
+          <span class="l-pend"><i></i>pending</span>
+          <span class="l-fail"><i></i>failed</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- New submission input cell -->
+  <section class="cell active" data-anim aria-labelledby="submit-h">
+    <h2 id="submit-h" style="position:absolute;left:-9999px">New analysis</h2>
+    <div class="row">
+      <div class="gutter"><span class="prompt-in">In [&nbsp;]:</span></div>
+      <div class="cbody">
+        <form method="post" action="/submit">
+          <div class="field selwrap">
+            <label for="language">language</label>
+            <select id="language" name="language">
+              <option value="python" selected>python</option>
+              <option value="javascript">javascript</option>
+              <option value="typescript">typescript</option>
+              <option value="java">java</option>
+              <option value="c++">c++</option>
+              <option value="c#">c#</option>
+              <option value="go">go</option>
+              <option value="rust">rust</option>
+              <option value="ruby">ruby</option>
+              <option value="php">php</option>
+              <option value="sql">sql</option>
+              <option value="bash">bash</option>
+              <option value="other">other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="issue_description">issue_description</label>
+            <textarea id="issue_description" name="issue_description" required
+              placeholder="Paste the error, stack trace, or describe what the code is doing wrong&hellip;"></textarea>
+          </div>
+          <div class="cellbar">
+            <button type="submit" class="run-btn">
+              <span class="tri" aria-hidden="true">&#9654;</span><span class="btn-text">Analyze</span>
+            </button>
+            <span class="hint">analysis runs on Lightning AI &middot; a few seconds</span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- History -->
+  <section aria-label="Analysis history">
+    <div class="sec" data-anim>
+      <h2>Executed cells</h2>
+      <span class="meta">{{ total }} {{ 'entry' if total == 1 else 'entries' }}</span>
+      <span class="grow" aria-hidden="true"></span>
+      {% if sessions %}
+      <button id="sort-toggle" class="sort-btn" type="button" aria-label="Toggle sort order">▾ newest first</button>
+      {% endif %}
+    </div>
+
+    {% if sessions %}
+    <!-- E2 status filter pills -->
+    <div class="pills-row" role="group" aria-label="Filter by status">
+      <button class="pill pill-all pill-active" data-filter="all" type="button" aria-pressed="true">all <span class="pill-count">{{ total }}</span></button>
+      <button class="pill pill-success" data-filter="success" type="button" aria-pressed="false">success <span class="pill-count">{{ succ }}</span></button>
+      <button class="pill pill-failed" data-filter="failed" type="button" aria-pressed="false">failed <span class="pill-count">{{ failed_ }}</span></button>
+      <button class="pill pill-pending" data-filter="pending" type="button" aria-pressed="false">pending <span class="pill-count">{{ pend }}</span></button>
+    </div>
+
+    <!-- E1 live search -->
+    <div class="search-wrap">
+      <label for="history-search" class="visually-hidden">Search history</label>
+      <input type="search" id="history-search" class="search-input" placeholder="/ filter history…" autocomplete="off" aria-label="Filter history cells" />
+    </div>
+
+    <!-- E1 no-matches state -->
+    <p id="no-matches" class="no-matches nb-end" hidden aria-live="polite">no cells match your filter</p>
+
+    {% for s in sessions %}
+    <article class="ncell"
+      data-status="{{ s.ai_status | lower }}"
+      data-search="{{ (s.language ~ ' ' ~ s.issue_description ~ ' ' ~ (s.ai_category or '') ~ ' ' ~ (s.ai_difficulty or '') ~ ' ' ~ (s.ai_recommendation or '') ~ ' ' ~ (s.error_message or '')) | lower }}">
+      <!-- input: the submitted issue -->
+      <div class="row src">
+        <div class="gutter"><span class="prompt-in">In [{{ s.id }}]:</span></div>
+        <div class="cbody">
+          <div class="src-head">
+            <span class="lang-tag">{{ s.language }}</span>
+            <span class="ts">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+          </div>
+          <div class="src-text">{% set _lang_map = {'c#': 'csharp', 'c++': 'cpp'} %}<pre><code class="language-{{ _lang_map.get(s.language, s.language) }}">{{ s.issue_description }}</code></pre></div>
+        </div>
+      </div>
+      <!-- output: the AI analysis -->
+      <div class="row output">
+        <div class="gutter out"><span class="prompt-out">Out[{{ s.id }}]:</span></div>
+        <div class="cbody">
+          <div class="out-head">
+            <span class="badge badge-{{ s.ai_status | lower }}"><span class="bdot" aria-hidden="true"></span>{{ s.ai_status }}</span>
+          </div>
+
+          {% if s.ai_status == 'FAILED' %}
+          <div class="stderr"><span class="etype">AnalysisError</span>: {% if s.error_message %}{{ s.error_message }}{% else %}analysis failed{% endif %}</div>
+          <dl>
+            <dt>category</dt>
+            <dd class="cat">{% if s.ai_category %}{{ s.ai_category }}{% else %}<span class="none">None</span>{% endif %}</dd>
+            <dt>difficulty</dt>
+            <dd>{% if s.ai_difficulty %}<span class="diff">{{ s.ai_difficulty }}</span>{% else %}<span class="none">None</span>{% endif %}</dd>
+            <dt>recommendation</dt>
+            <dd class="rec">{% if s.ai_recommendation %}{{ s.ai_recommendation }}{% else %}<span class="none">None</span>{% endif %}</dd>
+          </dl>
+          {% elif s.ai_status == 'PENDING' %}
+          <dl>
+            <dt>category</dt>
+            <dd class="cat">{% if s.ai_category %}{{ s.ai_category }}{% else %}<span class="none">None</span>{% endif %}</dd>
+            <dt>difficulty</dt>
+            <dd>{% if s.ai_difficulty %}<span class="diff">{{ s.ai_difficulty }}</span>{% else %}<span class="none">None</span>{% endif %}</dd>
+            <dt>recommendation</dt>
+            <dd class="rec">{% if s.ai_recommendation %}{{ s.ai_recommendation }}{% else %}<span class="none">awaiting analysis</span>{% endif %}</dd>
+          </dl>
+          <div class="shimmer" aria-hidden="true"></div>
+          {% else %}
+          <dl>
+            <dt>category</dt>
+            <dd class="cat">{% if s.ai_category %}{{ s.ai_category }}{% else %}<span class="none">None</span>{% endif %}</dd>
+            <dt>difficulty</dt>
+            <dd>{% if s.ai_difficulty %}<span class="diff">{{ s.ai_difficulty }}</span>{% else %}<span class="none">None</span>{% endif %}</dd>
+            <dt>recommendation</dt>
+            <dd class="rec">{% if s.ai_recommendation %}{{ s.ai_recommendation }}{% else %}<span class="none">None</span>{% endif %}</dd>
+          </dl>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+    {% else %}
+    <article class="cell empty" data-anim>
+      <div class="row">
+        <div class="gutter"><span class="prompt-in">In [&nbsp;]:</span></div>
+        <div class="cbody">
+          <span class="comment"># no cells executed yet</span>
+          <h3>Your notebook is empty</h3>
+          <p>Run your first analysis in the input cell above and it will appear here &mdash; with its category, difficulty, and recommended next step.</p>
+        </div>
+      </div>
+    </article>
+    {% endif %}
+  </section>
+
+  <p class="nb-end" aria-hidden="true"># end of notebook</p>
+
+</main>
+{% endblock %}

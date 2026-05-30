@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{% block title %}Debugbook{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<!-- Prism.js 1.29.0 — code syntax highlighting -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" />
+<link rel="stylesheet" href="/style/main.css" />
+<!-- Prism core + languages -->
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-java.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-c.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-cpp.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-csharp.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-rust.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-ruby.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-php.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+<!-- marked.js 13.0.3 + DOMPurify 3.1.6 — markdown rendering -->
+<script defer src="https://cdn.jsdelivr.net/npm/marked@13.0.3/marked.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  {% block body %}{% endblock %}
+
+  <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    /* ---- Submit progress state (functional: runs for everyone, no preventDefault) ---- */
+    document.querySelectorAll('form').forEach(function (form) {
+      var btn = form.querySelector('.run-btn');
+      if (!btn) return;
+      form.addEventListener('submit', function () {
+        if (btn.dataset.busy) return;
+        btn.dataset.busy = '1';
+        var label = btn.querySelector('.btn-text') || btn;
+        label.textContent = (form.getAttribute('action') === '/submit') ? 'Running…' : 'Working…';
+        btn.classList.add('is-busy');
+        btn.setAttribute('aria-disabled', 'true');
+        /* flip this cell's execution prompt to the running marker In [*]: */
+        var cell = form.closest('.cell');
+        if (cell) {
+          var p = cell.querySelector('.prompt-in');
+          if (p) p.textContent = 'In [*]:';
+          cell.classList.add('active');
+        }
+        /* form still POSTs normally */
+      });
+    });
+
+    /* ================================================================
+       E1 + E2 + E3 — Live search / filter pills / sort toggle
+       Functional: runs for everyone regardless of GSAP / reduced-motion
+       ================================================================ */
+    (function () {
+      var cells = Array.from(document.querySelectorAll('.ncell'));
+      if (!cells.length) return;
+
+      var container   = document.querySelector('section[aria-label="Analysis history"]');
+      var searchInput = document.getElementById('history-search');
+      var noMatches   = document.getElementById('no-matches');
+      var sortBtn     = document.getElementById('sort-toggle');
+      var pills       = Array.from(document.querySelectorAll('.pill'));
+
+      if (!container || !searchInput || !noMatches || !sortBtn) return;
+
+      var currentStatus = 'all';
+      var currentQuery  = '';
+      var sortOrder     = localStorage.getItem('debugbook.sort') || 'newest';
+
+      /* Apply stored sort on page load */
+      if (sortOrder === 'oldest') {
+        sortBtn.textContent = '▴ oldest first';
+        reverseOrder(true);
+      } else {
+        sortBtn.textContent = '▾ newest first';
+      }
+
+      function reverseOrder(toOldest) {
+        var parent = container;
+        var ordered = Array.from(parent.querySelectorAll('.ncell'));
+        if (toOldest) ordered.reverse();
+        ordered.forEach(function (c) { parent.appendChild(c); });
+      }
+
+      function applyFilters() {
+        var q = currentQuery.toLowerCase();
+        var visible = 0;
+        cells.forEach(function (cell) {
+          var haystack = (cell.getAttribute('data-search') || '').toLowerCase();
+          var status   = (cell.getAttribute('data-status') || '').toLowerCase();
+          var statusOk = (currentStatus === 'all') || (status === currentStatus);
+          var searchOk = !q || haystack.includes(q);
+          var show = statusOk && searchOk;
+          cell.style.display = show ? '' : 'none';
+          if (show) visible++;
+        });
+        noMatches.hidden = visible > 0;
+      }
+
+      /* Search — debounced 150 ms */
+      var debounceTimer;
+      searchInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+          currentQuery = searchInput.value;
+          applyFilters();
+        }, 150);
+      });
+
+      /* Pills */
+      pills.forEach(function (pill) {
+        pill.addEventListener('click', function () {
+          pills.forEach(function (p) { p.classList.remove('pill-active'); p.removeAttribute('aria-pressed'); });
+          pill.classList.add('pill-active');
+          pill.setAttribute('aria-pressed', 'true');
+          currentStatus = pill.getAttribute('data-filter');
+          applyFilters();
+        });
+      });
+
+      /* Sort toggle */
+      sortBtn.addEventListener('click', function () {
+        if (sortOrder === 'newest') {
+          sortOrder = 'oldest';
+          sortBtn.textContent = '▴ oldest first';
+          reverseOrder(true);
+        } else {
+          sortOrder = 'newest';
+          sortBtn.textContent = '▾ newest first';
+          reverseOrder(false);
+        }
+        localStorage.setItem('debugbook.sort', sortOrder);
+        /* re-apply filters so hidden cells remain hidden after reorder */
+        applyFilters();
+      });
+    })();
+
+    /* ================================================================
+       E10 — Prism syntax highlighting
+       ================================================================ */
+    if (typeof Prism !== 'undefined') {
+      Prism.highlightAll();
+    }
+
+    /* ================================================================
+       E11 — Markdown rendering of ai_recommendation
+       ================================================================ */
+    (function () {
+      if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') return;
+      document.querySelectorAll('dd.rec').forEach(function (dd) {
+        /* Skip if it contains a .none placeholder (None / awaiting analysis) */
+        if (dd.querySelector('.none')) return;
+        var raw = dd.textContent.trim();
+        if (!raw) return;
+        var html = DOMPurify.sanitize(marked.parse(raw));
+        dd.innerHTML = html;
+      });
+    })();
+
+    /* ================================================================
+       End functional wiring
+       ================================================================ */
+
+    if (typeof gsap === 'undefined') return;
+
+    var mm = gsap.matchMedia();
+    mm.add('(prefers-reduced-motion: no-preference)', function () {
+      /* 1. Page-load entrance stagger */
+      var enter = gsap.utils.toArray('[data-anim]');
+      if (enter.length) {
+        gsap.from(enter, {opacity:0, y:16, duration:.55, ease:'power3.out', stagger:.085});
+      }
+
+      /* 4. History list stagger */
+      var cells = gsap.utils.toArray('.ncell');
+      if (cells.length) {
+        gsap.from(cells, {opacity:0, y:22, duration:.5, ease:'power2.out', stagger:.07, delay:.15});
+      }
+
+      /* 5. Status badge pop-in with overshoot */
+      var badges = gsap.utils.toArray('.badge');
+      if (badges.length) {
+        gsap.from(badges, {scale:.6, opacity:0, transformOrigin:'left center',
+          duration:.46, ease:'back.out(1.6)', stagger:.05, delay:.28});
+      }
+
+      /* Signature: stats counter tick-up (reduced-motion keeps server values) */
+      gsap.utils.toArray('[data-count]').forEach(function (el) {
+        var end = parseFloat(el.getAttribute('data-count')) || 0;
+        var obj = {v:0};
+        el.textContent = '0';
+        gsap.to(obj, {v:end, duration:1.05, ease:'power2.out', delay:.3,
+          onUpdate:function(){ el.textContent = Math.round(obj.v); }});
+      });
+
+      /* meter fill grow */
+      gsap.utils.toArray('.meter span').forEach(function (s) {
+        if (s.classList.contains('s-empty')) return;
+        var w = s.style.width;
+        gsap.from(s, {width:0, duration:.9, ease:'power2.out', delay:.4,
+          onComplete:function(){ s.style.width = w; }});
+      });
+
+      /* 2. Input focus ring animation */
+      gsap.utils.toArray('.field input, .field select, .field textarea').forEach(function (inp) {
+        inp.addEventListener('focus', function () {
+          gsap.to(inp, {boxShadow:'0 0 0 3px rgba(52,211,153,0.18)', borderColor:'#34D399', duration:.16, ease:'power2.out'});
+        });
+        inp.addEventListener('blur', function () {
+          gsap.to(inp, {boxShadow:'0 0 0 0 rgba(52,211,153,0)', borderColor:'#1E2A25', duration:.16, ease:'power2.out'});
+        });
+      });
+
+      /* 3. Primary button hover */
+      gsap.utils.toArray('.run-btn').forEach(function (b) {
+        b.addEventListener('mouseenter', function () {
+          gsap.to(b, {scale:1.035, duration:.18, ease:'power2.out'});
+        });
+        b.addEventListener('mouseleave', function () {
+          gsap.to(b, {scale:1, duration:.18, ease:'power2.out'});
+        });
+      });
+
+      /* Empty-state caret gentle blink-float */
+      var blink = document.querySelector('.empty .blink');
+      if (blink) gsap.to(blink, {opacity:.15, duration:.6, ease:'power1.inOut', repeat:-1, yoyo:true});
+
+      /* E1 search input focus ring */
+      var si = document.getElementById('history-search');
+      if (si) {
+        si.addEventListener('focus', function () {
+          gsap.to(si, {boxShadow:'0 0 0 3px rgba(52,211,153,0.18)', borderColor:'#34D399', duration:.16, ease:'power2.out'});
+        });
+        si.addEventListener('blur', function () {
+          gsap.to(si, {boxShadow:'0 0 0 0 rgba(52,211,153,0)', borderColor:'#1E2A25', duration:.16, ease:'power2.out'});
+        });
+      }
+
+      /* E1 no-matches fade-in (observe hidden attr changes) */
+      var nm = document.getElementById('no-matches');
+      if (nm && window.MutationObserver) {
+        new MutationObserver(function (muts) {
+          muts.forEach(function (m) {
+            if (m.attributeName === 'hidden') {
+              if (!nm.hidden) {
+                gsap.fromTo(nm, {opacity:0, y:6}, {opacity:1, y:0, duration:.22, ease:'power2.out'});
+              }
+            }
+          });
+        }).observe(nm, {attributes: true});
+      }
+
+      /* E2 pill click visual highlight pulse */
+      document.querySelectorAll('.pill').forEach(function (pill) {
+        pill.addEventListener('click', function () {
+          gsap.fromTo(pill, {scale:.92}, {scale:1, duration:.22, ease:'back.out(2)'});
+        });
+      });
+    });
+  });
+  </script>
+</body>
+</html>
